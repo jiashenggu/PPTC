@@ -2,6 +2,8 @@ import openai
 import backoff
 import os
 import tiktoken
+
+
 @backoff.on_exception(backoff.expo, openai.error.RateLimitError)
 @backoff.on_exception(backoff.expo, openai.error.APIConnectionError)
 def completions_with_backoff(**kwargs):
@@ -17,24 +19,26 @@ def chat_with_backoff(**kwargs):
 
 def embeddings_with_backoff(**kwargs):
 
-    openai.api_type = "azure"
-    openai.api_base = "https://{your name}.openai.azure.com/"
-    openai.api_version = "2022-12-01"
-    openai.api_key = os.getenv("")
-    openai.api_key = "your key"
+    # openai.api_type = "azure"
+    # openai.api_base = "https://{your name}.openai.azure.com/"
+    # openai.api_version = "2022-12-01"
+    # openai.api_key = os.getenv("")
+    # openai.api_key = "your key"
     return openai.Embedding.create(**kwargs)
-
-openai.api_base = "https://{your name}.openai.azure.com/"
-openai.api_key = "your key"
+# openai.api_type = "azure"
+openai.api_base = "https://api.lingyiwanwu.com/v1"
+openai.api_key = "pretrain-eval"
+openai.organization = "org-BeUS8HDM7fYddefoIrL5ONrO"
+openai.api_requestor.TIMEOUT_SECS = 20.0
 
 def query_azure_openai(query, model = "vicuna-13b-v1.5-16k",id=None):
 
     if model == 'text3':
-        openai.api_type = "azure"
-        openai.api_version = "2023-03-15-preview"
-        openai.api_key = os.getenv("")
+        # openai.api_type = "azure"
+        # openai.api_version = "2023-03-15-preview"
+        # openai.api_key = os.getenv("")
         response = completions_with_backoff(
-            engine="text-davinci-003",
+            model="text-davinci-003",
             prompt=query,
             temperature=0,
             max_tokens=1000,
@@ -46,23 +50,33 @@ def query_azure_openai(query, model = "vicuna-13b-v1.5-16k",id=None):
         return response["choices"][0]["text"]
     
     elif model == 'turbo':
-        openai.api_type = "azure"
+        # openai.api_type = "azure"
 
-        openai.api_version = "2023-03-15-preview"
-        openai.api_key = os.getenv("")
+        # openai.api_version = "2023-03-15-preview"
+        # openai.api_key = os.getenv("")
 
-        prompt = "<|im_start|>system\nYou are a helpful assistant.\n<|im_end|>\n<|im_start|>user\nHello!\n<|im_end|>\n<|im_start|>assistant\nHow can I help you?\n<|im_end|>\n<|im_start|>user\n{0}\n<|im_end|>\n<|im_start|>assistant\n".format(
-            query)
-        response = completions_with_backoff(
-            engine="gpt-35-turbo",
-            prompt=prompt,
+        # prompt = "<|im_start|>system\nYou are a helpful assistant.\n<|im_end|>\n<|im_start|>user\nHello!\n<|im_end|>\n<|im_start|>assistant\nHow can I help you?\n<|im_end|>\n<|im_start|>user\n{0}\n<|im_end|>\n<|im_start|>assistant\n".format(
+        #     query)
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Hello!"},
+            {"role": "assistant", "content": "How can I help you?"},
+            {"role": "user", "content": query},
+        ]
+        response = chat_with_backoff(
+            # model="gpt-35-turbo",
+            model="gpt-3.5-turbo",
+            # prompt=prompt,
+            messages=messages,
             temperature=0,
             max_tokens=1000,
             top_p=0.95,
             frequency_penalty=0,
             presence_penalty=0,
             stop=["<|im_end|>", "¬User¬", "</decomposed>","</query>"])
-        return response["choices"][0]["text"]
+        # return response["choices"][0]["text"]
+        # return gpt_35(query)
+        return response["choices"][0]["message"]["content"]
 
     elif model == 'gpt4':
         openai.api_type = "azure"
